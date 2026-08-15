@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOS HGS Gandaki — Official App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+<style>
+  body { background: radial-gradient(circle at 20% 0%, #0F3860 0%, #061627 60%), var(--navy-950); min-height: 100vh; }
+  .wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .auth-card {
+    width: 100%; max-width: 420px; background: var(--white); border-radius: 22px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.45); overflow: hidden; animation: popIn 420ms cubic-bezier(0.16,1,0.3,1);
+  }
+  .auth-head { background: linear-gradient(135deg, var(--navy-900), var(--navy-700)); padding: 34px 30px 26px; text-align: center; color: var(--white); position: relative; }
+  .auth-head::after { content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--gold-500), var(--gold-400), var(--gold-500)); }
+  .logo-circle {
+    width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 14px; background: var(--white);
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    animation: popIn 500ms 100ms both cubic-bezier(0.16,1,0.3,1);
+  }
+  .logo-circle svg { width: 44px; height: 44px; }
+  .school-name { font-family: var(--font-display); font-weight: 800; font-size: 18px; letter-spacing: 0.5px; margin: 0; }
+  .school-sub { font-size: 12px; opacity: 0.8; margin: 3px 0 0; letter-spacing: 1.5px; text-transform: uppercase; }
+  .official-tag { font-size: 11px; opacity: 0.6; margin-top: 10px; letter-spacing: 0.5px; }
+
+  .auth-body { padding: 28px 30px 30px; }
+  .role-select { display: flex; gap: 8px; margin-bottom: 22px; background: var(--slate-100); padding: 5px; border-radius: 12px; }
+  .role-btn {
+    flex: 1; border: none; background: transparent; padding: 10px 6px; border-radius: 9px;
+    font-weight: 700; font-size: 12.5px; color: var(--slate-600); transition: all var(--transition);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .role-btn .ic { font-size: 17px; }
+  .role-btn.active { background: var(--navy-800); color: var(--white); box-shadow: 0 3px 10px rgba(11,42,74,0.28); }
+
+  .switch-mode { text-align: center; margin-top: 18px; font-size: 13.5px; color: var(--slate-600); }
+  .switch-mode button { background: none; border: none; color: var(--navy-700); font-weight: 700; padding: 0 4px; }
+  .switch-mode button:hover { text-decoration: underline; }
+
+  .err-box { background: var(--red-100); color: var(--red-600); padding: 11px 14px; border-radius: 10px; font-size: 13.5px; margin-bottom: 16px; animation: slideDown 200ms ease; }
+  .ok-box { background: var(--green-100); color: var(--green-600); padding: 11px 14px; border-radius: 10px; font-size: 13.5px; margin-bottom: 16px; animation: slideDown 200ms ease; }
+
+  .step-panel { animation: fadeUp 280ms ease; }
+  .hint { font-size: 12px; color: var(--slate-400); margin-top: -10px; margin-bottom: 16px; }
+
+  .scan-zone {
+    border: 2px dashed var(--slate-200); border-radius: 14px; padding: 16px; text-align: center; margin-bottom: 16px;
+    transition: border-color var(--transition);
+  }
+  .scan-zone.has-code { border-color: var(--green-600); background: var(--green-100); }
+  #barcodeVideo { width: 100%; border-radius: 10px; display: none; background: #000; max-height: 220px; object-fit: cover; }
+  .scan-result { font-weight: 700; color: var(--green-600); font-size: 14px; margin-top: 8px; }
+  .scan-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+  .default-pass-note {
+    background: var(--gold-100); color: #8A6A0C; font-size: 12.5px; padding: 10px 13px;
+    border-radius: 10px; margin-bottom: 16px; display: flex; gap: 8px; align-items: flex-start;
+  }
+  footer.foot-note { text-align: center; color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 20px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="auth-card">
+    <div class="auth-head">
+      <div class="logo-circle">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="48" fill="#0B2A4A"/>
+          <path d="M50 15 L80 30 V50 C80 68 67 82 50 88 C33 82 20 68 20 50 V30 Z" fill="#D4A017"/>
+          <path d="M50 24 L72 34 V50 C72 63 62 74 50 79 C38 74 28 63 28 50 V34 Z" fill="#0B2A4A"/>
+          <text x="50" y="58" font-family="Poppins, sans-serif" font-size="26" font-weight="800" fill="#FFFFFF" text-anchor="middle">S</text>
+        </svg>
+      </div>
+      <h1 class="school-name">SOS HGS GANDAKI</h1>
+      <p class="school-sub">Nepal</p>
+      <p class="official-tag">— OFFICIAL SCHOOL APP —</p>
+    </div>
+
+    <div class="auth-body">
+      <div class="role-select" id="roleSelect">
+        <button class="role-btn active" data-role="student"><span class="ic">🎓</span>Student</button>
+        <button class="role-btn" data-role="teacher"><span class="ic">🧑‍🏫</span>Teacher</button>
+        <button class="role-btn" data-role="admin"><span class="ic">🛡️</span>Admin</button>
+      </div>
+
+      <div id="errBox"></div>
+
+      <!-- LOGIN FORM -->
+      <div id="loginPanel" class="step-panel">
+        <div class="field">
+          <label for="loginId">Full Name (Login ID)</label>
+          <input type="text" id="loginId" placeholder="Enter your full name" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="loginPass">Password</label>
+          <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary btn-block" id="loginBtn">
+          <span id="loginBtnText">Login</span>
+        </button>
+        <div class="switch-mode">
+          Don't have an account? <button id="goSignup">Sign up</button>
+        </div>
+      </div>
+
+      <!-- SIGNUP: STUDENT -->
+      <div id="signupStudentPanel" class="step-panel" style="display:none">
+        <div class="default-pass-note">🔑 <span>Your default password will be <strong>SOSHGS,student</strong>. You can change it later after logging in.</span></div>
+        <div class="field"><label>Full Name</label><input type="text" id="s_name" placeholder="e.g. Ram Paudel"></div>
+        <div class="field"><label>Class</label><input type="text" id="s_class" placeholder="e.g. 10, Grade 8"></div>
+        <div class="field"><label>Roll No.</label><input type="text" id="s_roll" placeholder="e.g. 14"></div>
+        <div class="field">
+          <label>ID Card Barcode</label>
+          <div class="scan-zone" id="scanZone">
+            <button type="button" class="btn btn-ghost btn-sm" id="startScanBtn">📷 Scan Barcode with Camera</button>
+            <video id="barcodeVideo" autoplay muted playsinline></video>
+            <div id="scanResultText"></div>
+          </div>
+          <input type="text" id="s_barcode" placeholder="Or type the barcode number from your ID card">
+        </div>
+        <button class="btn btn-primary btn-block" id="signupStudentBtn">Create Student Account</button>
+        <div class="switch-mode">Already registered? <button id="backToLogin1">Login</button></div>
+      </div>
+
+      <!-- SIGNUP: TEACHER -->
+      <div id="signupTeacherPanel" class="step-panel" style="display:none">
+        <div class="default-pass-note">🔑 <span>Your default password will be <strong>SOSHGS,teacher</strong>. You can change it later after logging in.</span></div>
+        <div class="field"><label>Full Name</label><input type="text" id="t_name" placeholder="e.g. Sita Sharma"></div>
+        <div class="field"><label>Subject Taught</label><input type="text" id="t_subject" placeholder="e.g. Mathematics"></div>
+        <div class="field"><label>Class Teacher Of (leave blank if none)</label><input type="text" id="t_classteacher" placeholder="e.g. 10"></div>
+        <button class="btn btn-primary btn-block" id="signupTeacherBtn">Create Teacher Account</button>
+        <div class="switch-mode">Already registered? <button id="backToLogin2">Login</button></div>
+      </div>
+
+      <!-- SIGNUP: ADMIN (restricted note) -->
+      <div id="signupAdminPanel" class="step-panel" style="display:none">
+        <div class="default-pass-note">🛡️ <span>Admin accounts are created by the school authority only. Use the default admin login, or contact IT to be added.</span></div>
+        <div class="field"><label>Admin Login ID</label><input type="text" id="a_name" placeholder="admin" value="admin"></div>
+        <button class="btn btn-primary btn-block" id="goLoginFromAdmin">Back to Login</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer class="foot-note">SOS Hermann Gmeiner School, Gandaki • Smart School Management System</footer>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="app-core.js"></script>
+<script>
+  SOS.ensureSeed();
+  SOS.requestNotifPermission();
+
+  // Redirect if already logged in
+  (function checkSession(){
+    const s = SOS.getSession();
+    if (s) {
+      window.location.href = s.role + ".html";
+    }
+  })();
+
+  let currentRole = "student";
+  let mode = "login"; // login | signup
+  let scannedBarcode = "";
+  let codeReader = null;
+
+  const roleBtns = document.querySelectorAll(".role-btn");
+  const loginPanel = document.getElementById("loginPanel");
+  const signupStudentPanel = document.getElementById("signupStudentPanel");
+  const signupTeacherPanel = document.getElementById("signupTeacherPanel");
+  const signupAdminPanel = document.getElementById("signupAdminPanel");
+  const errBox = document.getElementById("errBox");
+
+  function showToast(msg, type) {
+    const t = document.createElement("div");
+    t.className = "toast " + (type || "");
+    t.textContent = msg;
+    document.getElementById("toastWrap").appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  }
+
+  function clearErr() { errBox.innerHTML = ""; }
+  function showErr(msg) { errBox.innerHTML = `<div class="err-box">⚠️ ${msg}</div>`; }
+
+  function setRole(role) {
+    currentRole = role;
+    roleBtns.forEach(b => b.classList.toggle("active", b.dataset.role === role));
+    renderPanels();
+  }
+
+  function renderPanels() {
+    clearErr();
+    loginPanel.style.display = "none";
+    signupStudentPanel.style.display = "none";
+    signupTeacherPanel.style.display = "none";
+    signupAdminPanel.style.display = "none";
+    stopScanner();
+
+    if (mode === "login") {
+      loginPanel.style.display = "block";
+    } else {
+      if (currentRole === "student") signupStudentPanel.style.display = "block";
+      else if (currentRole === "teacher") signupTeacherPanel.style.display = "block";
+      else signupAdminPanel.style.display = "block";
+    }
+  }
+
+  roleBtns.forEach(b => b.addEventListener("click", () => setRole(b.dataset.role)));
+
+  document.getElementById("goSignup").addEventListener("click", () => { mode = "signup"; renderPanels(); });
+  document.getElementById("backToLogin1").addEventListener("click", () => { mode = "login"; renderPanels(); });
+  document.getElementById("backToLogin2").addEventListener("click", () => { mode = "login"; renderPanels(); });
+  document.getElementById("goLoginFromAdmin").addEventListener("click", () => { mode = "login"; renderPanels(); });
+
+  /* ---------- LOGIN ---------- */
+  document.getElementById("loginBtn").addEventListener("click", () => {
+    clearErr();
+    const id = document.getElementById("loginId").value.trim();
+    const pass = document.getElementById("loginPass").value;
+    if (!id || !pass) { showErr("Please enter both name and password."); return; }
+    const btnText = document.getElementById("loginBtnText");
+    btnText.innerHTML = '<span class="spinner"></span>';
+    setTimeout(() => {
+      const result = SOS.login(currentRole, id, pass);
+      btnText.textContent = "Login";
+      if (!result.ok) { showErr(result.error); return; }
+      showToast("Welcome back, " + result.user.name + "!", "success");
+      setTimeout(() => window.location.href = currentRole + ".html", 500);
+    }, 350);
+  });
+
+  document.getElementById("loginPass").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("loginBtn").click(); });
+
+  /* ---------- SIGNUP: STUDENT ---------- */
+  document.getElementById("signupStudentBtn").addEventListener("click", () => {
+    clearErr();
+    const name = document.getElementById("s_name").value.trim();
+    const className = document.getElementById("s_class").value.trim();
+    const rollNo = document.getElementById("s_roll").value.trim();
+    const barcode = document.getElementById("s_barcode").value.trim();
+    const result = SOS.signUpStudent({ name, className, rollNo, barcode });
+    if (!result.ok) { showErr(result.error); return; }
+    showToast(`Account created for ${result.user.name}! Please login.`, "success");
+    mode = "login"; renderPanels();
+    document.getElementById("loginId").value = result.user.name;
+  });
+
+  /* ---------- SIGNUP: TEACHER ---------- */
+  document.getElementById("signupTeacherBtn").addEventListener("click", () => {
+    clearErr();
+    const name = document.getElementById("t_name").value.trim();
+    const subject = document.getElementById("t_subject").value.trim();
+    const classTeacherOf = document.getElementById("t_classteacher").value.trim();
+    const result = SOS.signUpTeacher({ name, classTeacherOf, subject });
+    if (!result.ok) { showErr(result.error); return; }
+    showToast(`Account created for ${result.user.name}! Please login.`, "success");
+    mode = "login"; renderPanels();
+    document.getElementById("loginId").value = result.user.name;
+  });
+
+  /* ---------- REAL BARCODE SCANNER (camera, ZXing) ---------- */
+  const video = document.getElementById("barcodeVideo");
+  const scanZone = document.getElementById("scanZone");
+  const startScanBtn = document.getElementById("startScanBtn");
+  const scanResultText = document.getElementById("scanResultText");
+
+  function stopScanner() {
+    if (codeReader) { try { codeReader.reset(); } catch(e){} }
+    video.style.display = "none";
+    video.srcObject = null;
+  }
+
+  startScanBtn.addEventListener("click", async () => {
+    if (!window.ZXingBrowser && !window.ZXing) { showErr("Barcode scanner library failed to load. Check your connection and reload."); return; }
+    try {
+      const ZX = window.ZXingBrowser || window.ZXing;
+      codeReader = new ZX.BrowserMultiFormatReader();
+      video.style.display = "block";
+      startScanBtn.textContent = "📷 Scanning… point camera at ID card barcode";
+      startScanBtn.disabled = true;
+      const devices = await ZX.BrowserCodeReader.listVideoInputDevices();
+      const backCam = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[0];
+      codeReader.decodeFromVideoDevice(backCam ? backCam.deviceId : undefined, video, (result, err) => {
+        if (result) {
+          scannedBarcode = result.getText();
+          document.getElementById("s_barcode").value = scannedBarcode;
+          scanZone.classList.add("has-code");
+          scanResultText.innerHTML = `<div class="scan-result">✅ Scanned: ${scannedBarcode}</div>`;
+          stopScanner();
+          startScanBtn.textContent = "📷 Scan Again";
+          startScanBtn.disabled = false;
+          showToast("Barcode captured from ID card!", "success");
+        }
+      });
+    } catch (e) {
+      showErr("Could not access camera. Grant camera permission, or type the barcode number manually below.");
+      startScanBtn.textContent = "📷 Scan Barcode with Camera";
+      startScanBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

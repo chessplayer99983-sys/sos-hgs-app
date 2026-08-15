@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Portal — SOS HGS Gandaki</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+<style>
+  .stat-card { display: flex; align-items: center; gap: 14px; }
+  .stat-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 21px; flex-shrink: 0; }
+  .stat-num { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin: 0; }
+  .stat-label { font-size: 12.5px; color: var(--slate-600); margin: 2px 0 0; }
+
+  .scan-cta { background: linear-gradient(135deg, var(--navy-900), var(--navy-700)); color: #fff; border-radius: var(--radius-lg); padding: 28px; text-align: center; position: relative; overflow: hidden; }
+  .scan-cta::before { content:""; position:absolute; inset:0; background: radial-gradient(circle at 80% 0%, rgba(212,160,23,0.25), transparent 60%); }
+  .scan-cta .inner { position: relative; z-index: 1; }
+  #videoEl { width: 100%; max-width: 420px; border-radius: 14px; margin: 16px auto 0; display: none; background: #000; }
+  .pulse-ring { width: 64px; height: 64px; border-radius: 50%; background: rgba(212,160,23,0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; animation: pulseRing 2s infinite; }
+  @keyframes pulseRing { 0% { box-shadow: 0 0 0 0 rgba(212,160,23,0.4);} 70% { box-shadow: 0 0 0 18px rgba(212,160,23,0);} 100% { box-shadow: 0 0 0 0 rgba(212,160,23,0);} }
+
+  .notice-item, .assign-item { padding: 16px; border-radius: 12px; background: var(--slate-50); border: 1px solid var(--slate-100); margin-bottom: 12px; transition: box-shadow var(--transition); }
+  .notice-item:hover, .assign-item:hover { box-shadow: var(--shadow-card); }
+  .notice-title { font-weight: 700; font-size: 15px; margin: 0 0 4px; }
+  .notice-meta { font-size: 12.5px; color: var(--slate-400); margin: 6px 0 0; }
+
+  .ai-chat { display: flex; flex-direction: column; height: 480px; }
+  .ai-messages { flex: 1; overflow-y: auto; padding: 6px 2px; display: flex; flex-direction: column; gap: 12px; }
+  .ai-msg { max-width: 80%; padding: 12px 15px; border-radius: 14px; font-size: 14px; line-height: 1.5; animation: fadeUp 220ms ease; }
+  .ai-msg.user { align-self: flex-end; background: var(--navy-800); color: #fff; border-bottom-right-radius: 4px; }
+  .ai-msg.bot { align-self: flex-start; background: var(--slate-100); color: var(--slate-800); border-bottom-left-radius: 4px; white-space: pre-wrap; }
+  .ai-input-row { display: flex; gap: 8px; margin-top: 14px; }
+  .ai-status { font-size: 11.5px; padding: 4px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; }
+
+  .typing-dots span { display: inline-block; width: 6px; height: 6px; background: var(--slate-400); border-radius: 50%; margin-right: 3px; animation: bounce 1.2s infinite; }
+  .typing-dots span:nth-child(2) { animation-delay: 0.15s; } .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill=%230B2A4A/><path d='M50 15 L80 30 V50 C80 68 67 82 50 88 C33 82 20 68 20 50 V30 Z' fill=%23D4A017/><text x='50' y='58' font-family='sans-serif' font-size='26' font-weight='800' fill='white' text-anchor='middle'>S</text></svg>" alt="logo">
+      <div class="brand-text">SOS HGS GANDAKI<small>Student Portal</small></div>
+    </div>
+    <button class="nav-item active" data-tab="dashboard">🏠 Dashboard</button>
+    <button class="nav-item" data-tab="attendance">📷 Barcode Attendance</button>
+    <button class="nav-item" data-tab="calendar">📅 Attendance Calendar</button>
+    <button class="nav-item" data-tab="notices">📢 Notices</button>
+    <button class="nav-item" data-tab="assignments">📚 Assignments</button>
+    <button class="nav-item" data-tab="routine">🗓️ Routine</button>
+    <button class="nav-item" data-tab="message">✉️ Message Class Teacher</button>
+    <button class="nav-item" data-tab="ai">✨ AI Assistant</button>
+    <button class="nav-item" data-tab="settings">⚙️ Settings</button>
+    <div class="sidebar-foot">
+      <button class="nav-item" id="logoutBtn">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button id="hamburger" class="btn btn-ghost btn-sm" style="display:none;">☰</button>
+        <div>
+          <div style="font-weight:700;font-size:15px;" id="topGreeting">Welcome</div>
+          <div style="font-size:12px;color:var(--slate-400);" id="topSub"></div>
+        </div>
+      </div>
+      <div class="bell-wrap">
+        <button class="bell-btn" id="bellBtn">🔔<span class="bell-dot" id="bellDot" style="display:none;"></span></button>
+        <div class="notif-panel" id="notifPanel" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="tab-panel active" id="tab-dashboard">
+        <h2 class="section-title">Your Dashboard</h2>
+        <p class="section-sub">A quick look at your attendance, notices, and assignments.</p>
+        <div class="grid grid-3" style="margin-bottom:22px;">
+          <div class="card stat-card"><div class="stat-icon" style="background:var(--green-100);">✅</div><div><p class="stat-num" id="dashPresent">0</p><p class="stat-label">Days Present</p></div></div>
+          <div class="card stat-card"><div class="stat-icon" style="background:var(--red-100);">❌</div><div><p class="stat-num" id="dashAbsent">0</p><p class="stat-label">Days Absent</p></div></div>
+          <div class="card stat-card"><div class="stat-icon" style="background:var(--gold-100);">📊</div><div><p class="stat-num" id="dashPct">0%</p><p class="stat-label">Attendance Rate</p></div></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3 style="margin-top:0;font-size:15px;">Recent Notices</h3>
+            <div id="dashNotices"></div>
+          </div>
+          <div class="card">
+            <h3 style="margin-top:0;font-size:15px;">Upcoming Assignments</h3>
+            <div id="dashAssignments"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ATTENDANCE (BARCODE SCAN) -->
+      <div class="tab-panel" id="tab-attendance">
+        <h2 class="section-title">Mark Attendance</h2>
+        <p class="section-sub">Scan the barcode printed on your school ID card to mark today's attendance.</p>
+        <div class="scan-cta">
+          <div class="inner">
+            <div class="pulse-ring">📷</div>
+            <h3 style="margin:0 0 6px;">Scan Your ID Card</h3>
+            <p style="opacity:0.8;font-size:13.5px;margin:0 0 16px;">Point your camera at the barcode on your SOS HGS ID card</p>
+            <button class="btn btn-gold" id="scanAttendanceBtn">Start Camera Scan</button>
+            <video id="videoEl" autoplay muted playsinline></video>
+          </div>
+        </div>
+        <div id="attendanceResult" style="margin-top:18px;"></div>
+        <h3 style="margin:26px 0 12px;font-size:15px;">Attendance History</h3>
+        <div id="attHistoryList" class="card"></div>
+      </div>
+
+      <!-- CALENDAR -->
+      <div class="tab-panel" id="tab-calendar">
+        <h2 class="section-title">Attendance Calendar</h2>
+        <p class="section-sub"><span class="badge badge-green">Green</span> = Present &nbsp; <span class="badge badge-red">Red</span> = Absent</p>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <button class="btn btn-ghost btn-sm" id="calPrev">← Prev</button>
+            <h3 id="calMonthLabel" style="margin:0;font-size:16px;"></h3>
+            <button class="btn btn-ghost btn-sm" id="calNext">Next →</button>
+          </div>
+          <div class="cal-grid" id="calDow"></div>
+          <div class="cal-grid" id="calGrid" style="margin-top:6px;"></div>
+        </div>
+        <h3 style="margin:22px 0 12px;font-size:15px;">School Events</h3>
+        <div id="schoolEventsList" class="card"></div>
+      </div>
+
+      <!-- NOTICES -->
+      <div class="tab-panel" id="tab-notices">
+        <h2 class="section-title">Notices</h2>
+        <p class="section-sub">Announcements from admin and your class teacher.</p>
+        <div id="noticesList"></div>
+      </div>
+
+      <!-- ASSIGNMENTS -->
+      <div class="tab-panel" id="tab-assignments">
+        <h2 class="section-title">Assignments</h2>
+        <p class="section-sub">Work assigned by your subject teachers.</p>
+        <div id="assignmentsList"></div>
+      </div>
+
+      <!-- ROUTINE -->
+      <div class="tab-panel" id="tab-routine">
+        <h2 class="section-title">Class Routine</h2>
+        <p class="section-sub">Weekly schedule uploaded by admin.</p>
+        <div id="routineList"></div>
+      </div>
+
+      <!-- MESSAGE CLASS TEACHER -->
+      <div class="tab-panel" id="tab-message">
+        <h2 class="section-title">Message Your Class Teacher</h2>
+        <p class="section-sub">Send a note directly to your class teacher.</p>
+        <div class="card" style="max-width:520px;">
+          <div class="field"><label>Subject</label><input type="text" id="msgSubject" placeholder="e.g. Leave request"></div>
+          <div class="field"><label>Message</label><textarea id="msgBody" placeholder="Write your message..."></textarea></div>
+          <button class="btn btn-primary" id="sendMsgBtn">Send Message</button>
+        </div>
+        <h3 style="margin:22px 0 12px;font-size:15px;">Conversation</h3>
+        <div id="msgHistory" class="card"></div>
+      </div>
+
+      <!-- AI ASSISTANT -->
+      <div class="tab-panel" id="tab-ai">
+        <h2 class="section-title">AI Study Assistant</h2>
+        <p class="section-sub">Ask about your attendance, assignments, or get help understanding your work.</p>
+        <div style="margin-bottom:12px;"><span class="ai-status" id="aiStatusBadge"></span></div>
+        <div class="card ai-chat">
+          <div class="ai-messages" id="aiMessages"></div>
+          <div class="ai-input-row">
+            <input type="text" id="aiInput" placeholder="Ask something..." style="flex:1;padding:12px 14px;border-radius:10px;border:1.5px solid var(--slate-200);">
+            <button class="btn btn-primary" id="aiSendBtn">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="tab-panel" id="tab-settings">
+        <h2 class="section-title">Settings</h2>
+        <div class="card" style="max-width:420px;">
+          <h3 style="margin-top:0;font-size:15px;">Change Password</h3>
+          <div class="field"><label>Current Password</label><input type="password" id="curPass"></div>
+          <div class="field"><label>New Password</label><input type="password" id="newPass"></div>
+          <button class="btn btn-primary" id="changePassBtn">Update Password</button>
+        </div>
+        <div class="card" style="max-width:420px;margin-top:16px;">
+          <h3 style="margin-top:0;font-size:15px;">Notifications</h3>
+          <p style="font-size:13px;color:var(--slate-600);margin-bottom:12px;">Enable browser notifications to receive alerts for notices, assignments, and attendance reminders even when the app is closed.</p>
+          <button class="btn btn-ghost" id="enableNotifBtn">Enable Notifications</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="app-core.js"></script>
+<script>
+  const session = SOS.requireSession("student");
+  if (session) {
+    const student = SOS.read(SOS.KEYS.students, []).find(s => s.id === session.id);
+    if (!student) { SOS.logout(); window.location.href = "login.html"; }
+
+    document.getElementById("topGreeting").textContent = "Welcome, " + student.name;
+    document.getElementById("topSub").textContent = `Class ${student.className} • Roll No. ${student.rollNo}`;
+
+    function showToast(msg, type) {
+      const t = document.createElement("div");
+      t.className = "toast " + (type || "");
+      t.textContent = msg;
+      document.getElementById("toastWrap").appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+
+    /* ---------- NAV ---------- */
+    const navItems = document.querySelectorAll(".nav-item[data-tab]");
+    navItems.forEach(btn => btn.addEventListener("click", () => {
+      navItems.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      document.getElementById("sidebar").classList.remove("open");
+      if (btn.dataset.tab === "calendar") renderCalendar();
+    }));
+    document.getElementById("hamburger").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
+    if (window.innerWidth <= 860) document.getElementById("hamburger").style.display = "inline-flex";
+
+    document.getElementById("logoutBtn").addEventListener("click", () => { SOS.logout(); window.location.href = "login.html"; });
+
+    /* ---------- NOTIFICATIONS ---------- */
+    function renderNotifs() {
+      const notifs = SOS.getNotifications(student.name);
+      const unread = notifs.filter(n => !n.read).length;
+      document.getElementById("bellDot").style.display = unread ? "block" : "none";
+      const panel = document.getElementById("notifPanel");
+      panel.innerHTML = notifs.length ? notifs.slice(0, 20).map(n => `
+        <div class="notif-item"><div class="t">${n.title}</div><div class="b">${n.body}</div><div class="ts">${new Date(n.time).toLocaleString()}</div></div>
+      `).join("") : `<div class="empty-state"><div class="icon">🔕</div>No notifications yet.</div>`;
+    }
+    document.getElementById("bellBtn").addEventListener("click", () => {
+      const panel = document.getElementById("notifPanel");
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+      SOS.markAllRead(student.name);
+      renderNotifs();
+    });
+    document.addEventListener("click", e => {
+      if (!e.target.closest(".bell-wrap")) document.getElementById("notifPanel").style.display = "none";
+    });
+
+    /* ---------- DASHBOARD ---------- */
+    function renderDashboard() {
+      const now = SOS.nowNepal();
+      const monthMap = SOS.buildMonthAttendance(student.id, now.getFullYear(), now.getMonth());
+      const vals = Object.values(monthMap).filter(v => v !== null);
+      const present = vals.filter(v => v === "present").length;
+      const absent = vals.filter(v => v === "absent").length;
+      document.getElementById("dashPresent").textContent = present;
+      document.getElementById("dashAbsent").textContent = absent;
+      document.getElementById("dashPct").textContent = vals.length ? Math.round((present / vals.length) * 100) + "%" : "—";
+
+      const notices = SOS.getNoticesFor("student", student.className).slice(0, 3);
+      document.getElementById("dashNotices").innerHTML = notices.length ? notices.map(n => `
+        <div class="notice-item"><p class="notice-title">${n.title}</p><p style="font-size:13px;color:var(--slate-600);margin:0;">${n.description}</p></div>
+      `).join("") : `<div class="empty-state"><div class="icon">📭</div>No notices yet.</div>`;
+
+      const assigns = SOS.getAssignmentsForClass(student.className).slice(0, 3);
+      document.getElementById("dashAssignments").innerHTML = assigns.length ? assigns.map(a => `
+        <div class="assign-item"><p class="notice-title">${a.title}</p><p style="font-size:13px;color:var(--slate-600);margin:0;">${a.subject} • Due ${a.dueDate}</p></div>
+      `).join("") : `<div class="empty-state"><div class="icon">📚</div>No assignments yet.</div>`;
+    }
+
+    /* ---------- BARCODE ATTENDANCE ---------- */
+    let codeReader = null;
+    const videoEl = document.getElementById("videoEl");
+    document.getElementById("scanAttendanceBtn").addEventListener("click", async () => {
+      const ZX = window.ZXingBrowser || window.ZXing;
+      if (!ZX) { showToast("Scanner library not loaded. Check connection.", "error"); return; }
+      try {
+        codeReader = new ZX.BrowserMultiFormatReader();
+        videoEl.style.display = "block";
+        const devices = await ZX.BrowserCodeReader.listVideoInputDevices();
+        const backCam = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[0];
+        codeReader.decodeFromVideoDevice(backCam ? backCam.deviceId : undefined, videoEl, (result) => {
+          if (result) {
+            const code = result.getText();
+            try { codeReader.reset(); } catch(e){}
+            videoEl.style.display = "none";
+            handleScan(code);
+          }
+        });
+      } catch (e) {
+        showToast("Camera access denied or unavailable.", "error");
+      }
+    });
+
+    function handleScan(code) {
+      const result = SOS.markAttendanceByBarcode(code);
+      const box = document.getElementById("attendanceResult");
+      if (result.ok) {
+        box.innerHTML = `<div class="card" style="border-left:4px solid var(--green-600);"><span class="badge badge-green">✅ Marked Present</span><p style="margin:10px 0 0;font-weight:600;">${result.student.name} — Class ${result.student.className}</p><p style="margin:2px 0 0;font-size:13px;color:var(--slate-600);">${SOS.formatNepaliDateTime(SOS.nowNepal())}</p></div>`;
+        showToast("Attendance marked successfully!", "success");
+        renderDashboard(); renderAttHistory();
+      } else {
+        box.innerHTML = `<div class="card" style="border-left:4px solid var(--red-600);"><span class="badge badge-red">⚠️ ${result.error}</span></div>`;
+        showToast(result.error, "error");
+      }
+    }
+
+    function renderAttHistory() {
+      const records = SOS.getAttendanceForStudent(student.id).slice().reverse();
+      const list = document.getElementById("attHistoryList");
+      list.innerHTML = records.length ? records.slice(0, 15).map(r => `
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--slate-100);">
+          <span>${r.date}</span><span class="badge badge-green">Present — ${new Date(r.time).toLocaleTimeString()}</span>
+        </div>
+      `).join("") : `<div class="empty-state"><div class="icon">📋</div>No attendance scanned yet.</div>`;
+    }
+
+    /* ---------- CALENDAR ---------- */
+    let calYear = SOS.nowNepal().getFullYear();
+    let calMonth = SOS.nowNepal().getMonth();
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+    function renderCalendar() {
+      document.getElementById("calMonthLabel").textContent = `${monthNames[calMonth]} ${calYear}`;
+      const dowEl = document.getElementById("calDow");
+      dowEl.innerHTML = ["S","M","T","W","T","F","S"].map(d => `<div class="cal-dow">${d}</div>`).join("");
+
+      const map = SOS.buildMonthAttendance(student.id, calYear, calMonth);
+      const firstDow = new Date(calYear, calMonth, 1).getDay();
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      const grid = document.getElementById("calGrid");
+      let html = "";
+      for (let i = 0; i < firstDow; i++) html += `<div class="cal-cell blank"></div>`;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const status = map[d];
+        const cls = status === "present" ? "present" : status === "absent" ? "absent" : "future";
+        html += `<div class="cal-cell ${cls}">${d}</div>`;
+      }
+      grid.innerHTML = html;
+
+      const events = SOS.getCalendar().filter(e => {
+        const ed = new Date(e.date);
+        return ed.getFullYear() === calYear && ed.getMonth() === calMonth;
+      });
+      document.getElementById("schoolEventsList").innerHTML = events.length ? events.map(e => `
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--slate-100);">
+          <span>${e.label}</span><span class="badge badge-gold">${e.date}</span>
+        </div>
+      `).join("") : `<div class="empty-state"><div class="icon">🗓️</div>No events this month.</div>`;
+    }
+    document.getElementById("calPrev").addEventListener("click", () => { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); });
+    document.getElementById("calNext").addEventListener("click", () => { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); });
+
+    /* ---------- NOTICES ---------- */
+    function renderNotices() {
+      const notices = SOS.getNoticesFor("student", student.className);
+      const list = document.getElementById("noticesList");
+      list.innerHTML = notices.length ? notices.map(n => `
+        <div class="notice-item">
+          <p class="notice-title">${n.title}</p>
+          ${n.venue ? `<p style="font-size:13px;margin:2px 0;">📍 ${n.venue}</p>` : ""}
+          <p style="font-size:13.5px;color:var(--slate-600);margin:4px 0;">${n.description}</p>
+          <p class="notice-meta">From ${n.fromRole === "admin" ? "Admin" : "Teacher"} ${n.from} • ${new Date(n.time).toLocaleString()}</p>
+        </div>
+      `).join("") : `<div class="empty-state"><div class="icon">📭</div>No notices yet.</div>`;
+    }
+
+    /* ---------- ASSIGNMENTS ---------- */
+    function renderAssignments() {
+      const assigns = SOS.getAssignmentsForClass(student.className);
+      const list = document.getElementById("assignmentsList");
+      list.innerHTML = assigns.length ? assigns.map(a => `
+        <div class="assign-item">
+          <p class="notice-title">${a.title}</p>
+          <p style="font-size:13.5px;color:var(--slate-600);margin:4px 0;">${a.description}</p>
+          <p class="notice-meta">${a.subject} • Due ${a.dueDate} • Posted by ${a.from}</p>
+        </div>
+      `).join("") : `<div class="empty-state"><div class="icon">📚</div>No assignments yet.</div>`;
+    }
+
+    /* ---------- ROUTINE ---------- */
+    function renderRoutine() {
+      const routines = SOS.getRoutineForClass(student.className);
+      const list = document.getElementById("routineList");
+      list.innerHTML = routines.length ? routines.map(r => `
+        <div class="card" style="margin-bottom:12px;">
+          <h3 style="margin:0 0 10px;font-size:15px;">${r.day}</h3>
+          ${r.periods.map(p => `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--slate-100);font-size:13.5px;"><span>${p.time}</span><span>${p.subject}</span><span style="color:var(--slate-400);">${p.teacher}</span></div>`).join("")}
+        </div>
+      `).join("") : `<div class="empty-state"><div class="icon">🗓️</div>No routine uploaded yet.</div>`;
+    }
+
+    /* ---------- MESSAGE CLASS TEACHER ---------- */
+    function findClassTeacher() {
+      return SOS.read(SOS.KEYS.teachers, []).find(t => t.classTeacherOf === student.className);
+    }
+    document.getElementById("sendMsgBtn").addEventListener("click", () => {
+      const ct = findClassTeacher();
+      if (!ct) { showToast("No class teacher assigned for your class yet.", "error"); return; }
+      const subject = document.getElementById("msgSubject").value.trim();
+      const body = document.getElementById("msgBody").value.trim();
+      if (!body) { showToast("Please write a message.", "error"); return; }
+      SOS.sendMessage({ from: student.name, fromRole: "student", to: ct.name, toRole: "teacher", subject, body });
+      document.getElementById("msgSubject").value = ""; document.getElementById("msgBody").value = "";
+      showToast("Message sent to " + ct.name, "success");
+      renderMsgHistory();
+    });
+    function renderMsgHistory() {
+      const msgs = SOS.getMessagesFor(student.name);
+      const box = document.getElementById("msgHistory");
+      box.innerHTML = msgs.length ? msgs.map(m => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--slate-100);">
+          <p style="margin:0;font-weight:600;font-size:13.5px;">${m.from === student.name ? "You" : m.from} ${m.subject ? "— " + m.subject : ""}</p>
+          <p style="margin:3px 0 0;font-size:13.5px;color:var(--slate-600);">${m.body}</p>
+          <p class="notice-meta">${new Date(m.time).toLocaleString()}</p>
+        </div>
+      `).join("") : `<div class="empty-state"><div class="icon">✉️</div>No messages yet.</div>`;
+    }
+
+    /* ---------- AI ASSISTANT ---------- */
+    function renderAIStatus() {
+      const settings = SOS.getAISettings();
+      const badge = document.getElementById("aiStatusBadge");
+      if (navigator.onLine && settings.provider !== "none" && settings.apiKey) {
+        badge.className = "ai-status badge-green"; badge.textContent = `● Online — ${settings.provider}`;
+      } else {
+        badge.className = "ai-status badge-gold"; badge.textContent = "● Offline mode — basic summaries only";
+      }
+    }
+    function addAIMsg(text, who) {
+      const box = document.getElementById("aiMessages");
+      const div = document.createElement("div");
+      div.className = "ai-msg " + who;
+      div.textContent = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+    async function sendAI() {
+      const input = document.getElementById("aiInput");
+      const text = input.value.trim();
+      if (!text) return;
+      addAIMsg(text, "user");
+      input.value = "";
+      const box = document.getElementById("aiMessages");
+      const typing = document.createElement("div");
+      typing.className = "ai-msg bot typing-dots";
+      typing.innerHTML = "<span></span><span></span><span></span>";
+      box.appendChild(typing); box.scrollTop = box.scrollHeight;
+
+      const now = SOS.nowNepal();
+      const monthMap = SOS.buildMonthAttendance(student.id, now.getFullYear(), now.getMonth());
+      const vals = Object.values(monthMap).filter(v => v !== null);
+      const context = {
+        attendance: { total: vals.length, present: vals.filter(v=>v==="present").length },
+        assignments: SOS.getAssignmentsForClass(student.className)
+      };
+      const reply = await SOS.askAI(text, context);
+      typing.remove();
+      addAIMsg(reply, "bot");
+    }
+    document.getElementById("aiSendBtn").addEventListener("click", sendAI);
+    document.getElementById("aiInput").addEventListener("keydown", e => { if (e.key === "Enter") sendAI(); });
+    addAIMsg("Hi " + student.name + "! Ask me about your attendance, assignments, or anything you didn't understand in class.", "bot");
+
+    /* ---------- SETTINGS ---------- */
+    document.getElementById("changePassBtn").addEventListener("click", () => {
+      const cur = document.getElementById("curPass").value;
+      const next = document.getElementById("newPass").value;
+      const students = SOS.read(SOS.KEYS.students, []);
+      const s = students.find(x => x.id === student.id);
+      if (s.password !== cur) { showToast("Current password is incorrect.", "error"); return; }
+      if (!next || next.length < 4) { showToast("New password too short.", "error"); return; }
+      s.password = next;
+      SOS.write(SOS.KEYS.students, students);
+      showToast("Password updated!", "success");
+      document.getElementById("curPass").value = ""; document.getElementById("newPass").value = "";
+    });
+    document.getElementById("enableNotifBtn").addEventListener("click", () => {
+      SOS.requestNotifPermission();
+      showToast("Notification permission requested.", "success");
+    });
+
+    window.addEventListener("online", renderAIStatus);
+    window.addEventListener("offline", renderAIStatus);
+
+    /* ---------- INIT ---------- */
+    renderNotifs(); renderDashboard(); renderAttHistory(); renderCalendar();
+    renderNotices(); renderAssignments(); renderRoutine(); renderMsgHistory(); renderAIStatus();
+  }
+</script>
+</body>
+</html>

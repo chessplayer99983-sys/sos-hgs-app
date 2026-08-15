@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Portal — SOS HGS Gandaki</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+  .stat-card { display: flex; align-items: center; gap: 14px; }
+  .stat-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 21px; flex-shrink: 0; }
+  .stat-num { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin: 0; }
+  .stat-label { font-size: 12.5px; color: var(--slate-600); margin: 2px 0 0; }
+  table.data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.data-table th { text-align: left; padding: 10px 12px; background: var(--slate-100); color: var(--slate-600); font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+  table.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--slate-100); }
+  table.data-table tr:hover td { background: var(--slate-50); }
+  .subtab-row { display: flex; gap: 8px; margin-bottom: 18px; }
+  .activity-item { padding: 12px 14px; border-left: 3px solid var(--gold-500); background: var(--slate-50); border-radius: 8px; margin-bottom: 10px; font-size: 13.5px; }
+  .activity-item .ts { font-size: 11.5px; color: var(--slate-400); margin-top: 4px; }
+  .period-row { display: grid; grid-template-columns: 1fr 2fr 2fr auto; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .notice-item { padding: 16px; border-radius: 12px; background: var(--slate-50); border: 1px solid var(--slate-100); margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill=%230B2A4A/><path d='M50 15 L80 30 V50 C80 68 67 82 50 88 C33 82 20 68 20 50 V30 Z' fill=%23D4A017/><text x='50' y='58' font-family='sans-serif' font-size='26' font-weight='800' fill='white' text-anchor='middle'>S</text></svg>" alt="logo">
+      <div class="brand-text">SOS HGS GANDAKI<small>Admin Portal</small></div>
+    </div>
+    <button class="nav-item active" data-tab="dashboard">🏠 Dashboard</button>
+    <button class="nav-item" data-tab="students">🎓 Students</button>
+    <button class="nav-item" data-tab="teachers">🧑‍🏫 Teachers</button>
+    <button class="nav-item" data-tab="notices">📢 Send Notice</button>
+    <button class="nav-item" data-tab="calendar">📅 Calendar</button>
+    <button class="nav-item" data-tab="routine">🗓️ Routine</button>
+    <button class="nav-item" data-tab="substitute">🔄 Substitutes</button>
+    <button class="nav-item" data-tab="activity">📋 School Activity Log</button>
+    <button class="nav-item" data-tab="settings">⚙️ Settings</button>
+    <div class="sidebar-foot"><button class="nav-item" id="logoutBtn">🚪 Logout</button></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button id="hamburger" class="btn btn-ghost btn-sm" style="display:none;">☰</button>
+        <div><div style="font-weight:700;font-size:15px;">Admin Console</div><div style="font-size:12px;color:var(--slate-400);">School Management</div></div>
+      </div>
+      <div class="bell-wrap">
+        <button class="bell-btn" id="bellBtn">🔔<span class="bell-dot" id="bellDot" style="display:none;"></span></button>
+        <div class="notif-panel" id="notifPanel" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="tab-panel active" id="tab-dashboard">
+        <h2 class="section-title">School Overview</h2>
+        <p class="section-sub">Live snapshot of SOS HGS Gandaki.</p>
+        <div class="grid grid-3" id="dashStats"></div>
+        <h3 style="margin:24px 0 12px;font-size:15px;">Recent School Activity</h3>
+        <div id="dashActivity"></div>
+      </div>
+
+      <!-- STUDENTS -->
+      <div class="tab-panel" id="tab-students">
+        <h2 class="section-title">Student Management</h2>
+        <p class="section-sub">All registered student accounts.</p>
+        <div class="field" style="max-width:280px;"><input type="text" id="studentFilter" placeholder="Filter by class..."></div>
+        <div class="card" style="overflow-x:auto;">
+          <table class="data-table" id="studentsTable"></table>
+        </div>
+      </div>
+
+      <!-- TEACHERS -->
+      <div class="tab-panel" id="tab-teachers">
+        <h2 class="section-title">Teacher Management</h2>
+        <p class="section-sub">All registered teacher accounts.</p>
+        <div class="card" style="overflow-x:auto;">
+          <table class="data-table" id="teachersTable"></table>
+        </div>
+      </div>
+
+      <!-- SEND NOTICE -->
+      <div class="tab-panel" id="tab-notices">
+        <h2 class="section-title">Send Notice</h2>
+        <p class="section-sub">Admin can notify students, teachers, or both — a specific class or the whole school.</p>
+        <div class="card" style="max-width:560px;">
+          <div class="field"><label>Event / Notice Title</label><input type="text" id="n_title" placeholder="e.g. Annual Sports Day"></div>
+          <div class="field"><label>Venue</label><input type="text" id="n_venue" placeholder="e.g. School Ground"></div>
+          <div class="field"><label>Description</label><textarea id="n_desc" placeholder="Details..."></textarea></div>
+          <div class="field"><label>Audience</label>
+            <select id="n_audience"><option value="both">Students & Teachers</option><option value="students">Students Only</option><option value="teachers">Teachers Only</option></select>
+          </div>
+          <div class="field"><label>Class (leave blank for whole school)</label><input type="text" id="n_class" placeholder="e.g. 10"></div>
+          <button class="btn btn-primary" id="sendNoticeBtn">Send Notice</button>
+        </div>
+        <h3 style="margin:22px 0 12px;font-size:15px;">Notices Sent</h3>
+        <div id="allNoticesList"></div>
+      </div>
+
+      <!-- CALENDAR -->
+      <div class="tab-panel" id="tab-calendar">
+        <h2 class="section-title">School Calendar</h2>
+        <p class="section-sub">Upload holidays and events, visible to all students' calendars.</p>
+        <div class="card" style="max-width:460px;">
+          <div class="field"><label>Date</label><input type="date" id="cal_date"></div>
+          <div class="field"><label>Event Label</label><input type="text" id="cal_label" placeholder="e.g. Dashain Holiday"></div>
+          <div class="field"><label>Type</label><select id="cal_type"><option value="event">Event</option><option value="holiday">Holiday</option><option value="exam">Exam</option></select></div>
+          <button class="btn btn-primary" id="addCalBtn">Add to Calendar</button>
+        </div>
+        <h3 style="margin:22px 0 12px;font-size:15px;">Upcoming Entries</h3>
+        <div id="calList" class="card"></div>
+      </div>
+
+      <!-- ROUTINE -->
+      <div class="tab-panel" id="tab-routine">
+        <h2 class="section-title">Upload Class Routine</h2>
+        <p class="section-sub">Set the weekly period schedule for a class.</p>
+        <div class="card" style="max-width:620px;">
+          <div class="field"><label>Class</label><input type="text" id="r_class" placeholder="e.g. 10"></div>
+          <div class="field"><label>Day</label><select id="r_day"><option>Sunday</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select></div>
+          <div id="periodRows"></div>
+          <button class="btn btn-ghost btn-sm" id="addPeriodBtn" style="margin-bottom:12px;">+ Add Period</button>
+          <br>
+          <button class="btn btn-primary" id="saveRoutineBtn">Save Routine</button>
+        </div>
+      </div>
+
+      <!-- SUBSTITUTES -->
+      <div class="tab-panel" id="tab-substitute">
+        <h2 class="section-title">Assign Substitute Teacher</h2>
+        <p class="section-sub">When a teacher is absent, assign a substitute for a class period.</p>
+        <div class="card" style="max-width:560px;">
+          <div class="field"><label>Absent Teacher</label><input type="text" id="sub_absent" placeholder="Name of absent teacher"></div>
+          <div class="field"><label>Class</label><input type="text" id="sub_class" placeholder="e.g. 10"></div>
+          <div class="field"><label>Subject</label><input type="text" id="sub_subject" placeholder="e.g. Science"></div>
+          <div class="field"><label>Substitute Teacher</label><input type="text" id="sub_teacher" placeholder="Name of substitute"></div>
+          <div class="field"><label>Date</label><input type="date" id="sub_date"></div>
+          <div class="field"><label>Period</label><input type="text" id="sub_period" placeholder="e.g. 3"></div>
+          <button class="btn btn-primary" id="assignSubBtn">Assign Substitute</button>
+        </div>
+        <h3 style="margin:22px 0 12px;font-size:15px;">Recent Substitute Assignments</h3>
+        <div id="subsList"></div>
+      </div>
+
+      <!-- ACTIVITY LOG -->
+      <div class="tab-panel" id="tab-activity">
+        <h2 class="section-title">School Activity Log</h2>
+        <p class="section-sub">Every account creation and school-management action, automatically recorded.</p>
+        <div id="fullActivityList"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="tab-panel" id="tab-settings">
+        <h2 class="section-title">Settings</h2>
+        <div class="card" style="max-width:460px;margin-bottom:16px;">
+          <h3 style="margin-top:0;font-size:15px;">School Management</h3>
+          <p style="font-size:13px;color:var(--slate-600);margin-bottom:14px;">Reset every student and teacher password back to default.</p>
+          <button class="btn btn-danger" id="resetAllBtn">Reset All Passwords to Default</button>
+        </div>
+        <div class="card" style="max-width:460px;margin-bottom:16px;">
+          <h3 style="margin-top:0;font-size:15px;">Change Admin Password</h3>
+          <div class="field"><label>Current Password</label><input type="password" id="curPass"></div>
+          <div class="field"><label>New Password</label><input type="password" id="newPass"></div>
+          <button class="btn btn-primary" id="changePassBtn">Update Password</button>
+        </div>
+        <div class="card" style="max-width:460px;">
+          <h3 style="margin-top:0;font-size:15px;">AI Assistant — API Key</h3>
+          <p style="font-size:13px;color:var(--slate-600);margin-bottom:14px;">Used by student AI assistant when online. Stored only on this device.</p>
+          <div class="field"><label>Provider</label>
+            <select id="ai_provider"><option value="none">None (offline only)</option><option value="gemini">Google Gemini</option><option value="groq">Groq</option><option value="openrouter">OpenRouter</option></select>
+          </div>
+          <div class="field"><label>API Key</label><input type="password" id="ai_key" placeholder="Paste API key"></div>
+          <button class="btn btn-primary" id="saveAIBtn">Save AI Settings</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="app-core.js"></script>
+<script>
+  const session = SOS.requireSession("admin");
+  if (session) {
+    function showToast(msg, type) {
+      const t = document.createElement("div");
+      t.className = "toast " + (type || "");
+      t.textContent = msg;
+      document.getElementById("toastWrap").appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+
+    /* ---------- NAV ---------- */
+    const navItems = document.querySelectorAll(".nav-item[data-tab]");
+    navItems.forEach(btn => btn.addEventListener("click", () => {
+      navItems.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      document.getElementById("sidebar").classList.remove("open");
+    }));
+    document.getElementById("hamburger").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
+    if (window.innerWidth <= 860) document.getElementById("hamburger").style.display = "inline-flex";
+    document.getElementById("logoutBtn").addEventListener("click", () => { SOS.logout(); window.location.href = "login.html"; });
+
+    /* ---------- NOTIFICATIONS ---------- */
+    function renderNotifs() {
+      const notifs = SOS.getNotifications("admin");
+      const unread = notifs.filter(n => !n.read).length;
+      document.getElementById("bellDot").style.display = unread ? "block" : "none";
+      const panel = document.getElementById("notifPanel");
+      panel.innerHTML = notifs.length ? notifs.slice(0, 25).map(n => `
+        <div class="notif-item"><div class="t">${n.title}</div><div class="b">${n.body}</div><div class="ts">${new Date(n.time).toLocaleString()}</div></div>
+      `).join("") : `<div class="empty-state"><div class="icon">🔕</div>No notifications yet.</div>`;
+    }
+    document.getElementById("bellBtn").addEventListener("click", () => {
+      const panel = document.getElementById("notifPanel");
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+      SOS.markAllRead("admin"); renderNotifs();
+    });
+    document.addEventListener("click", e => { if (!e.target.closest(".bell-wrap")) document.getElementById("notifPanel").style.display = "none"; });
+
+    /* ---------- DASHBOARD ---------- */
+    function renderDashboard() {
+      const students = SOS.read(SOS.KEYS.students, []);
+      const teachers = SOS.read(SOS.KEYS.teachers, []);
+      const today = SOS.dateKey(SOS.nowNepal());
+      const presentToday = SOS.read(SOS.KEYS.attendance, []).filter(a => a.date === today).length;
+      document.getElementById("dashStats").innerHTML = `
+        <div class="card stat-card"><div class="stat-icon" style="background:var(--gold-100);">🎓</div><div><p class="stat-num">${students.length}</p><p class="stat-label">Total Students</p></div></div>
+        <div class="card stat-card"><div class="stat-icon" style="background:#E5EDF6;">🧑‍🏫</div><div><p class="stat-num">${teachers.length}</p><p class="stat-label">Total Teachers</p></div></div>
+        <div class="card stat-card"><div class="stat-icon" style="background:var(--green-100);">✅</div><div><p class="stat-num">${presentToday}</p><p class="stat-label">Present Today</p></div></div>
+      `;
+      const log = SOS.read(SOS.KEYS.schoolNotifications, []).slice(0, 6);
+      document.getElementById("dashActivity").innerHTML = log.length ? log.map(a => `
+        <div class="activity-item">${a.text}<div class="ts">${new Date(a.time).toLocaleString()}</div></div>
+      `).join("") : `<div class="empty-state"><div class="icon">📋</div>No activity yet.</div>`;
+    }
+
+    /* ---------- STUDENTS ---------- */
+    function renderStudents(filter) {
+      let students = SOS.read(SOS.KEYS.students, []);
+      if (filter) students = students.filter(s => s.className.toLowerCase().includes(filter.toLowerCase()));
+      const table = document.getElementById("studentsTable");
+      table.innerHTML = `
+        <thead><tr><th>Name</th><th>Class</th><th>Roll No</th><th>Barcode</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>${students.length ? students.map(s => `
+          <tr>
+            <td>${s.name}</td><td>${s.className}</td><td>${s.rollNo}</td><td style="font-family:monospace;">${s.barcode}</td>
+            <td>${s.disabled ? '<span class="badge badge-red">Disabled</span>' : '<span class="badge badge-green">Active</span>'}</td>
+            <td style="display:flex;gap:6px;">
+              <button class="btn btn-sm btn-ghost" data-toggle="${s.id}" data-state="${s.disabled}">${s.disabled ? "Enable" : "Disable"}</button>
+              <button class="btn btn-sm btn-danger" data-remove="${s.id}">Remove</button>
+            </td>
+          </tr>
+        `).join("") : `<tr><td colspan="6" style="text-align:center;color:var(--slate-400);padding:24px;">No students registered yet.</td></tr>`}</tbody>
+      `;
+      table.querySelectorAll("[data-remove]").forEach(b => b.addEventListener("click", () => {
+        if (confirm("Remove this student's account permanently?")) { SOS.removeStudent(b.dataset.remove); renderStudents(document.getElementById("studentFilter").value); renderDashboard(); showToast("Student removed.", "success"); }
+      }));
+      table.querySelectorAll("[data-toggle]").forEach(b => b.addEventListener("click", () => {
+        SOS.toggleDisableStudent(b.dataset.toggle, b.dataset.state !== "true");
+        renderStudents(document.getElementById("studentFilter").value);
+        showToast("Student status updated.", "success");
+      }));
+    }
+    document.getElementById("studentFilter").addEventListener("input", e => renderStudents(e.target.value));
+
+    /* ---------- TEACHERS ---------- */
+    function renderTeachers() {
+      const teachers = SOS.read(SOS.KEYS.teachers, []);
+      const table = document.getElementById("teachersTable");
+      table.innerHTML = `
+        <thead><tr><th>Name</th><th>Subject</th><th>Class Teacher Of</th><th>Action</th></tr></thead>
+        <tbody>${teachers.length ? teachers.map(t => `
+          <tr><td>${t.name}</td><td>${t.subject}</td><td>${t.classTeacherOf || "—"}</td>
+          <td><button class="btn btn-sm btn-danger" data-remove="${t.id}">Remove</button></td></tr>
+        `).join("") : `<tr><td colspan="4" style="text-align:center;color:var(--slate-400);padding:24px;">No teachers registered yet.</td></tr>`}</tbody>
+      `;
+      table.querySelectorAll("[data-remove]").forEach(b => b.addEventListener("click", () => {
+        if (confirm("Remove this teacher's account permanently?")) { SOS.removeTeacher(b.dataset.remove); renderTeachers(); renderDashboard(); showToast("Teacher removed.", "success"); }
+      }));
+    }
+
+    /* ---------- NOTICES ---------- */
+    document.getElementById("sendNoticeBtn").addEventListener("click", () => {
+      const title = document.getElementById("n_title").value.trim();
+      const venue = document.getElementById("n_venue").value.trim();
+      const desc = document.getElementById("n_desc").value.trim();
+      const audience = document.getElementById("n_audience").value;
+      const className = document.getElementById("n_class").value.trim();
+      if (!title) { showToast("Please enter a title.", "error"); return; }
+      SOS.sendNotice({ from: "admin", fromRole: "admin", title, venue, description: desc, audience, className });
+      ["n_title","n_venue","n_desc","n_class"].forEach(id => document.getElementById(id).value = "");
+      showToast("Notice sent!", "success");
+      renderAllNotices(); renderDashboard();
+    });
+    function renderAllNotices() {
+      const notices = SOS.read(SOS.KEYS.notices, []);
+      document.getElementById("allNoticesList").innerHTML = notices.length ? notices.map(n => `
+        <div class="notice-item"><p class="notice-title" style="margin:0 0 4px;font-weight:700;">${n.title}</p>
+        <p style="font-size:12.5px;color:var(--slate-400);">To: ${n.audience}${n.className ? " (Class " + n.className + ")" : " (Whole School)"} • From ${n.fromRole} ${n.from}</p>
+        <p style="font-size:13px;color:var(--slate-600);margin:4px 0 0;">${n.description}</p></div>
+      `).join("") : `<div class="empty-state"><div class="icon">📭</div>No notices sent yet.</div>`;
+    }
+
+    /* ---------- CALENDAR ---------- */
+    document.getElementById("addCalBtn").addEventListener("click", () => {
+      const date = document.getElementById("cal_date").value;
+      const label = document.getElementById("cal_label").value.trim();
+      const type = document.getElementById("cal_type").value;
+      if (!date || !label) { showToast("Date and label required.", "error"); return; }
+      SOS.setCalendarEvent({ date, label, type });
+      document.getElementById("cal_date").value = ""; document.getElementById("cal_label").value = "";
+      showToast("Calendar entry added!", "success");
+      renderCalList();
+    });
+    function renderCalList() {
+      const list = SOS.getCalendar().slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
+      document.getElementById("calList").innerHTML = list.length ? list.map(e => `
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--slate-100);"><span>${e.label}</span><span class="badge badge-gold">${e.date}</span></div>
+      `).join("") : `<div class="empty-state"><div class="icon">🗓️</div>No calendar entries yet.</div>`;
+    }
+
+    /* ---------- ROUTINE ---------- */
+    let periodCount = 0;
+    function addPeriodRow() {
+      periodCount++;
+      const div = document.createElement("div");
+      div.className = "period-row";
+      div.dataset.row = periodCount;
+      div.innerHTML = `
+        <input type="text" placeholder="Time e.g. 10:00-10:45" class="p-time">
+        <input type="text" placeholder="Subject" class="p-subject">
+        <input type="text" placeholder="Teacher" class="p-teacher">
+        <button class="btn btn-sm btn-danger" type="button" onclick="this.closest('.period-row').remove()">✕</button>
+      `;
+      document.getElementById("periodRows").appendChild(div);
+    }
+    document.getElementById("addPeriodBtn").addEventListener("click", addPeriodRow);
+    addPeriodRow(); addPeriodRow();
+
+    document.getElementById("saveRoutineBtn").addEventListener("click", () => {
+      const className = document.getElementById("r_class").value.trim();
+      const day = document.getElementById("r_day").value;
+      if (!className) { showToast("Enter a class.", "error"); return; }
+      const periods = Array.from(document.querySelectorAll(".period-row")).map(row => ({
+        time: row.querySelector(".p-time").value.trim(),
+        subject: row.querySelector(".p-subject").value.trim(),
+        teacher: row.querySelector(".p-teacher").value.trim()
+      })).filter(p => p.time && p.subject);
+      if (!periods.length) { showToast("Add at least one period.", "error"); return; }
+      SOS.setRoutine({ className, day, periods });
+      showToast(`Routine saved for Class ${className}, ${day}!`, "success");
+    });
+
+    /* ---------- SUBSTITUTES ---------- */
+    document.getElementById("assignSubBtn").addEventListener("click", () => {
+      const absentTeacher = document.getElementById("sub_absent").value.trim();
+      const className = document.getElementById("sub_class").value.trim();
+      const subject = document.getElementById("sub_subject").value.trim();
+      const substituteTeacher = document.getElementById("sub_teacher").value.trim();
+      const date = document.getElementById("sub_date").value;
+      const period = document.getElementById("sub_period").value.trim();
+      if (!absentTeacher || !className || !subject || !substituteTeacher || !date || !period) { showToast("Fill in all fields.", "error"); return; }
+      SOS.createSubstitute({ absentTeacher, className, subject, substituteTeacher, date, period });
+      ["sub_absent","sub_class","sub_subject","sub_teacher","sub_date","sub_period"].forEach(id => document.getElementById(id).value = "");
+      showToast("Substitute assigned!", "success");
+      renderSubsList(); renderDashboard();
+    });
+    function renderSubsList() {
+      const list = SOS.read(SOS.KEYS.substitutes, []);
+      document.getElementById("subsList").innerHTML = list.length ? list.map(s => `
+        <div class="notice-item"><p class="notice-title">${s.subject} — Class ${s.className}</p><p style="font-size:13px;color:var(--slate-600);margin:4px 0;">${s.substituteTeacher} covers for ${s.absentTeacher}</p><p class="notice-meta">${s.date}, Period ${s.period}</p></div>
+      `).join("") : `<div class="empty-state"><div class="icon">🔄</div>No substitutes assigned yet.</div>`;
+    }
+
+    /* ---------- ACTIVITY LOG ---------- */
+    function renderFullActivity() {
+      const log = SOS.read(SOS.KEYS.schoolNotifications, []);
+      document.getElementById("fullActivityList").innerHTML = log.length ? log.map(a => `
+        <div class="activity-item">${a.text}<div class="ts">${new Date(a.time).toLocaleString()}</div></div>
+      `).join("") : `<div class="empty-state"><div class="icon">📋</div>No activity recorded yet.</div>`;
+    }
+
+    /* ---------- SETTINGS ---------- */
+    document.getElementById("resetAllBtn").addEventListener("click", () => {
+      if (confirm("Reset ALL student and teacher passwords to default? This cannot be undone.")) {
+        SOS.resetAllPasswords();
+        showToast("All passwords reset to default.", "success");
+      }
+    });
+    document.getElementById("changePassBtn").addEventListener("click", () => {
+      const cur = document.getElementById("curPass").value;
+      const next = document.getElementById("newPass").value;
+      const admins = SOS.read(SOS.KEYS.admins, []);
+      const a = admins.find(x => x.id === session.id);
+      if (a.password !== cur) { showToast("Current password incorrect.", "error"); return; }
+      if (!next || next.length < 4) { showToast("New password too short.", "error"); return; }
+      a.password = next; SOS.write(SOS.KEYS.admins, admins);
+      showToast("Password updated!", "success");
+      document.getElementById("curPass").value = ""; document.getElementById("newPass").value = "";
+    });
+
+    const aiSettings = SOS.getAISettings();
+    document.getElementById("ai_provider").value = aiSettings.provider;
+    document.getElementById("ai_key").value = aiSettings.apiKey;
+    document.getElementById("saveAIBtn").addEventListener("click", () => {
+      SOS.setAISettings({ provider: document.getElementById("ai_provider").value, apiKey: document.getElementById("ai_key").value.trim() });
+      showToast("AI settings saved on this device.", "success");
+    });
+
+    /* ---------- INIT ---------- */
+    renderNotifs(); renderDashboard(); renderStudents(); renderTeachers(); renderAllNotices(); renderCalList(); renderSubsList(); renderFullActivity();
+  }
+</script>
+</body>
+</html>

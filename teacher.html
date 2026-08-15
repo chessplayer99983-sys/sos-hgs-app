@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Portal — SOS HGS Gandaki</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+  .stat-card { display: flex; align-items: center; gap: 14px; }
+  .stat-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 21px; flex-shrink: 0; }
+  .stat-num { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin: 0; }
+  .stat-label { font-size: 12.5px; color: var(--slate-600); margin: 2px 0 0; }
+  table.data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.data-table th { text-align: left; padding: 10px 12px; background: var(--slate-100); color: var(--slate-600); font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+  table.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--slate-100); }
+  table.data-table tr:hover td { background: var(--slate-50); }
+  .no-class-msg { text-align: center; padding: 60px 20px; color: var(--slate-400); }
+  .notice-item, .assign-item { padding: 16px; border-radius: 12px; background: var(--slate-50); border: 1px solid var(--slate-100); margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill=%230B2A4A/><path d='M50 15 L80 30 V50 C80 68 67 82 50 88 C33 82 20 68 20 50 V30 Z' fill=%23D4A017/><text x='50' y='58' font-family='sans-serif' font-size='26' font-weight='800' fill='white' text-anchor='middle'>S</text></svg>" alt="logo">
+      <div class="brand-text">SOS HGS GANDAKI<small>Teacher Portal</small></div>
+    </div>
+    <button class="nav-item active" data-tab="dashboard">🏠 Dashboard</button>
+    <button class="nav-item" data-tab="myclass">👥 My Class</button>
+    <button class="nav-item" data-tab="notices">📢 Send Notice</button>
+    <button class="nav-item" data-tab="assignments">📚 Assignments</button>
+    <button class="nav-item" data-tab="substitute">🔄 Substitute Duty</button>
+    <button class="nav-item" data-tab="messages">✉️ Messages</button>
+    <button class="nav-item" data-tab="settings">⚙️ Settings</button>
+    <div class="sidebar-foot"><button class="nav-item" id="logoutBtn">🚪 Logout</button></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button id="hamburger" class="btn btn-ghost btn-sm" style="display:none;">☰</button>
+        <div>
+          <div style="font-weight:700;font-size:15px;" id="topGreeting">Welcome</div>
+          <div style="font-size:12px;color:var(--slate-400);" id="topSub"></div>
+        </div>
+      </div>
+      <div class="bell-wrap">
+        <button class="bell-btn" id="bellBtn">🔔<span class="bell-dot" id="bellDot" style="display:none;"></span></button>
+        <div class="notif-panel" id="notifPanel" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="tab-panel active" id="tab-dashboard">
+        <h2 class="section-title">Your Dashboard</h2>
+        <p class="section-sub" id="roleSub"></p>
+        <div class="grid grid-3" id="dashStats"></div>
+        <div class="grid grid-2" style="margin-top:18px;">
+          <div class="card"><h3 style="margin-top:0;font-size:15px;">Recent Notices You Sent</h3><div id="dashNotices"></div></div>
+          <div class="card"><h3 style="margin-top:0;font-size:15px;">Your Substitute Duties</h3><div id="dashSubs"></div></div>
+        </div>
+      </div>
+
+      <!-- MY CLASS (only if class teacher) -->
+      <div class="tab-panel" id="tab-myclass">
+        <h2 class="section-title">My Class</h2>
+        <p class="section-sub" id="myClassSub"></p>
+        <div id="myClassContent"></div>
+      </div>
+
+      <!-- SEND NOTICE -->
+      <div class="tab-panel" id="tab-notices">
+        <h2 class="section-title">Send Notice</h2>
+        <p class="section-sub" id="noticeScopeNote"></p>
+        <div class="card" style="max-width:520px;">
+          <div class="field"><label>Event / Notice Title</label><input type="text" id="n_title" placeholder="e.g. Unit Test Postponed"></div>
+          <div class="field"><label>Venue (optional)</label><input type="text" id="n_venue" placeholder="e.g. Room 12"></div>
+          <div class="field"><label>Description</label><textarea id="n_desc" placeholder="Details..."></textarea></div>
+          <button class="btn btn-primary" id="sendNoticeBtn">Send to My Class</button>
+        </div>
+        <h3 style="margin:22px 0 12px;font-size:15px;">Notices You've Sent</h3>
+        <div id="sentNoticesList"></div>
+      </div>
+
+      <!-- ASSIGNMENTS -->
+      <div class="tab-panel" id="tab-assignments">
+        <h2 class="section-title">Assignments</h2>
+        <p class="section-sub">Give assignments to your class.</p>
+        <div class="card" style="max-width:520px;">
+          <div class="field"><label>Title</label><input type="text" id="a_title" placeholder="e.g. Algebra Worksheet 3"></div>
+          <div class="field"><label>Description</label><textarea id="a_desc" placeholder="Instructions..."></textarea></div>
+          <div class="field"><label>Due Date</label><input type="date" id="a_due"></div>
+          <button class="btn btn-primary" id="postAssignBtn">Post Assignment</button>
+        </div>
+        <h3 style="margin:22px 0 12px;font-size:15px;">Posted Assignments</h3>
+        <div id="postedAssignList"></div>
+      </div>
+
+      <!-- SUBSTITUTE DUTY -->
+      <div class="tab-panel" id="tab-substitute">
+        <h2 class="section-title">Substitute Duty</h2>
+        <p class="section-sub">Classes assigned to you by admin, and reporting your own absence.</p>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3 style="margin-top:0;font-size:15px;">Your Substitute Assignments</h3>
+            <div id="subsList"></div>
+          </div>
+          <div class="card">
+            <h3 style="margin-top:0;font-size:15px;">Report Your Absence to Admin</h3>
+            <div class="field"><label>Message to Admin</label><textarea id="absenceMsg" placeholder="e.g. I will be absent tomorrow due to..."></textarea></div>
+            <button class="btn btn-ghost" id="sendAbsenceBtn">Send to Admin</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MESSAGES -->
+      <div class="tab-panel" id="tab-messages">
+        <h2 class="section-title">Messages</h2>
+        <p class="section-sub">Conversation with admin, students, and parents.</p>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3 style="margin-top:0;font-size:15px;">Message a Parent (via student name)</h3>
+            <div class="field"><label>Student Name</label><input type="text" id="p_student" placeholder="Student's full name"></div>
+            <div class="field"><label>Message</label><textarea id="p_msg" placeholder="Message for the parent..."></textarea></div>
+            <button class="btn btn-primary" id="sendParentBtn">Send Message</button>
+          </div>
+          <div class="card">
+            <h3 style="margin-top:0;font-size:15px;">Inbox</h3>
+            <div id="teacherMsgHistory"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="tab-panel" id="tab-settings">
+        <h2 class="section-title">Settings</h2>
+        <div class="card" style="max-width:420px;">
+          <h3 style="margin-top:0;font-size:15px;">Change Password</h3>
+          <div class="field"><label>Current Password</label><input type="password" id="curPass"></div>
+          <div class="field"><label>New Password</label><input type="password" id="newPass"></div>
+          <button class="btn btn-primary" id="changePassBtn">Update Password</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="app-core.js"></script>
+<script>
+  const session = SOS.requireSession("teacher");
+  if (session) {
+    const teacher = SOS.read(SOS.KEYS.teachers, []).find(t => t.id === session.id);
+    if (!teacher) { SOS.logout(); window.location.href = "login.html"; }
+    const isClassTeacher = !!teacher.classTeacherOf;
+
+    document.getElementById("topGreeting").textContent = "Welcome, " + teacher.name;
+    document.getElementById("topSub").textContent = `${teacher.subject}${isClassTeacher ? " • Class Teacher of " + teacher.classTeacherOf : ""}`;
+    document.getElementById("roleSub").textContent = isClassTeacher ? `You are the class teacher of Class ${teacher.classTeacherOf}.` : "You are a subject teacher (not assigned as a class teacher).";
+    document.getElementById("noticeScopeNote").textContent = isClassTeacher ? `Notices you send go to students of Class ${teacher.classTeacherOf} only.` : `You are not a class teacher, so notices need a class teacher assignment from admin.`;
+
+    function showToast(msg, type) {
+      const t = document.createElement("div");
+      t.className = "toast " + (type || "");
+      t.textContent = msg;
+      document.getElementById("toastWrap").appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+
+    /* ---------- NAV ---------- */
+    const navItems = document.querySelectorAll(".nav-item[data-tab]");
+    navItems.forEach(btn => btn.addEventListener("click", () => {
+      navItems.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      document.getElementById("sidebar").classList.remove("open");
+    }));
+    document.getElementById("hamburger").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
+    if (window.innerWidth <= 860) document.getElementById("hamburger").style.display = "inline-flex";
+    document.getElementById("logoutBtn").addEventListener("click", () => { SOS.logout(); window.location.href = "login.html"; });
+
+    /* ---------- NOTIFICATIONS ---------- */
+    function renderNotifs() {
+      const notifs = SOS.getNotifications(teacher.name);
+      const unread = notifs.filter(n => !n.read).length;
+      document.getElementById("bellDot").style.display = unread ? "block" : "none";
+      const panel = document.getElementById("notifPanel");
+      panel.innerHTML = notifs.length ? notifs.slice(0, 20).map(n => `
+        <div class="notif-item"><div class="t">${n.title}</div><div class="b">${n.body}</div><div class="ts">${new Date(n.time).toLocaleString()}</div></div>
+      `).join("") : `<div class="empty-state"><div class="icon">🔕</div>No notifications yet.</div>`;
+    }
+    document.getElementById("bellBtn").addEventListener("click", () => {
+      const panel = document.getElementById("notifPanel");
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+      SOS.markAllRead(teacher.name); renderNotifs();
+    });
+    document.addEventListener("click", e => { if (!e.target.closest(".bell-wrap")) document.getElementById("notifPanel").style.display = "none"; });
+
+    /* ---------- DASHBOARD ---------- */
+    function renderDashboard() {
+      const classStudents = isClassTeacher ? SOS.read(SOS.KEYS.students, []).filter(s => s.className === teacher.classTeacherOf) : [];
+      const today = SOS.dateKey(SOS.nowNepal());
+      const todayAtt = isClassTeacher ? SOS.getAttendanceForClass(teacher.classTeacherOf, today) : [];
+      const stats = document.getElementById("dashStats");
+      stats.innerHTML = `
+        <div class="card stat-card"><div class="stat-icon" style="background:var(--gold-100);">👥</div><div><p class="stat-num">${classStudents.length}</p><p class="stat-label">${isClassTeacher ? "Students in Your Class" : "Not a Class Teacher"}</p></div></div>
+        <div class="card stat-card"><div class="stat-icon" style="background:var(--green-100);">✅</div><div><p class="stat-num">${todayAtt.length}</p><p class="stat-label">Present Today</p></div></div>
+        <div class="card stat-card"><div class="stat-icon" style="background:#E5EDF6;">🔄</div><div><p class="stat-num">${SOS.getSubstitutesForTeacher(teacher.name).length}</p><p class="stat-label">Substitute Duties</p></div></div>
+      `;
+      const notices = SOS.read(SOS.KEYS.notices, []).filter(n => n.from === teacher.name).slice(0, 3);
+      document.getElementById("dashNotices").innerHTML = notices.length ? notices.map(n => `<div class="notice-item"><p class="notice-title">${n.title}</p></div>`).join("") : `<div class="empty-state"><div class="icon">📭</div>None sent yet.</div>`;
+      const subs = SOS.getSubstitutesForTeacher(teacher.name).slice(0, 3);
+      document.getElementById("dashSubs").innerHTML = subs.length ? subs.map(s => `<div class="notice-item"><p class="notice-title">${s.subject} — Class ${s.className}</p><p style="font-size:12.5px;color:var(--slate-600);margin:0;">${s.date}, Period ${s.period}</p></div>`).join("") : `<div class="empty-state"><div class="icon">🔄</div>No substitute duties.</div>`;
+    }
+
+    /* ---------- MY CLASS ---------- */
+    function renderMyClass() {
+      const content = document.getElementById("myClassContent");
+      const sub = document.getElementById("myClassSub");
+      if (!isClassTeacher) {
+        sub.textContent = "";
+        content.innerHTML = `<div class="no-class-msg"><div style="font-size:38px;">🏫</div>You are not assigned as a class teacher. Contact admin if this is incorrect.</div>`;
+        return;
+      }
+      const cls = teacher.classTeacherOf;
+      sub.textContent = `Students of Class ${cls}, with today's attendance status.`;
+      const students = SOS.read(SOS.KEYS.students, []).filter(s => s.className === cls);
+      const today = SOS.dateKey(SOS.nowNepal());
+      const todayAtt = SOS.getAttendanceForClass(cls, today);
+      content.innerHTML = `
+        <div class="card" style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr><th>Roll No</th><th>Name</th><th>Today's Status</th><th>Action</th></tr></thead>
+            <tbody>
+              ${students.length ? students.sort((a,b)=>a.rollNo.localeCompare(b.rollNo,undefined,{numeric:true})).map(s => {
+                const rec = todayAtt.find(a => a.studentId === s.id);
+                return `<tr>
+                  <td>${s.rollNo}</td><td>${s.name}</td>
+                  <td>${rec ? '<span class="badge badge-green">Present</span>' : '<span class="badge badge-red">Absent</span>'}</td>
+                  <td>${rec ? `<button class="btn btn-sm btn-danger" data-remove="${rec.id}">Remove</button>` : "—"}</td>
+                </tr>`;
+              }).join("") : `<tr><td colspan="4" style="text-align:center;color:var(--slate-400);padding:24px;">No students registered in this class yet.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      `;
+      content.querySelectorAll("[data-remove]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const result = SOS.removeAttendanceRecord(btn.dataset.remove, teacher);
+          if (result.ok) { showToast("Attendance record removed.", "success"); renderMyClass(); renderDashboard(); }
+          else showToast(result.error, "error");
+        });
+      });
+    }
+
+    /* ---------- SEND NOTICE (own class only) ---------- */
+    document.getElementById("sendNoticeBtn").addEventListener("click", () => {
+      if (!isClassTeacher) { showToast("Only class teachers can send notices to a class.", "error"); return; }
+      const title = document.getElementById("n_title").value.trim();
+      const venue = document.getElementById("n_venue").value.trim();
+      const desc = document.getElementById("n_desc").value.trim();
+      if (!title) { showToast("Please enter a title.", "error"); return; }
+      SOS.sendNotice({ from: teacher.name, fromRole: "teacher", title, venue, description: desc, audience: "students", className: teacher.classTeacherOf });
+      document.getElementById("n_title").value = ""; document.getElementById("n_venue").value = ""; document.getElementById("n_desc").value = "";
+      showToast("Notice sent to Class " + teacher.classTeacherOf, "success");
+      renderSentNotices(); renderDashboard();
+    });
+    function renderSentNotices() {
+      const notices = SOS.read(SOS.KEYS.notices, []).filter(n => n.from === teacher.name);
+      document.getElementById("sentNoticesList").innerHTML = notices.length ? notices.map(n => `
+        <div class="notice-item"><p class="notice-title">${n.title}</p>${n.venue ? `<p style="font-size:13px;margin:2px 0;">📍 ${n.venue}</p>` : ""}<p style="font-size:13px;color:var(--slate-600);margin:4px 0;">${n.description}</p><p class="notice-meta">${new Date(n.time).toLocaleString()}</p></div>
+      `).join("") : `<div class="empty-state"><div class="icon">📭</div>No notices sent yet.</div>`;
+    }
+
+    /* ---------- ASSIGNMENTS ---------- */
+    document.getElementById("postAssignBtn").addEventListener("click", () => {
+      if (!isClassTeacher) { showToast("Assign a class in your profile to post assignments.", "error"); return; }
+      const title = document.getElementById("a_title").value.trim();
+      const desc = document.getElementById("a_desc").value.trim();
+      const due = document.getElementById("a_due").value;
+      if (!title || !due) { showToast("Title and due date required.", "error"); return; }
+      SOS.createAssignment({ from: teacher.name, subject: teacher.subject, className: teacher.classTeacherOf, title, description: desc, dueDate: due });
+      document.getElementById("a_title").value = ""; document.getElementById("a_desc").value = ""; document.getElementById("a_due").value = "";
+      showToast("Assignment posted!", "success");
+      renderPostedAssignments();
+    });
+    function renderPostedAssignments() {
+      const list = SOS.read(SOS.KEYS.assignments, []).filter(a => a.from === teacher.name);
+      document.getElementById("postedAssignList").innerHTML = list.length ? list.map(a => `
+        <div class="assign-item"><p class="notice-title">${a.title}</p><p style="font-size:13px;color:var(--slate-600);margin:4px 0;">${a.description}</p><p class="notice-meta">Due ${a.dueDate}</p></div>
+      `).join("") : `<div class="empty-state"><div class="icon">📚</div>No assignments posted yet.</div>`;
+    }
+
+    /* ---------- SUBSTITUTE ---------- */
+    function renderSubs() {
+      const subs = SOS.getSubstitutesForTeacher(teacher.name);
+      document.getElementById("subsList").innerHTML = subs.length ? subs.map(s => `
+        <div class="notice-item"><p class="notice-title">${s.subject} — Class ${s.className}</p><p style="font-size:13px;color:var(--slate-600);margin:4px 0;">Covering for ${s.absentTeacher}</p><p class="notice-meta">${s.date}, Period ${s.period}</p></div>
+      `).join("") : `<div class="empty-state"><div class="icon">🔄</div>No substitute duties assigned.</div>`;
+    }
+    document.getElementById("sendAbsenceBtn").addEventListener("click", () => {
+      const msg = document.getElementById("absenceMsg").value.trim();
+      if (!msg) { showToast("Please write a message.", "error"); return; }
+      SOS.sendMessage({ from: teacher.name, fromRole: "teacher", to: "admin", toRole: "admin", subject: "Absence Report", body: msg });
+      document.getElementById("absenceMsg").value = "";
+      showToast("Absence report sent to admin.", "success");
+    });
+
+    /* ---------- MESSAGES ---------- */
+    document.getElementById("sendParentBtn").addEventListener("click", () => {
+      const studentName = document.getElementById("p_student").value.trim();
+      const msg = document.getElementById("p_msg").value.trim();
+      if (!studentName || !msg) { showToast("Fill in student name and message.", "error"); return; }
+      const student = SOS.read(SOS.KEYS.students, []).find(s => s.name.toLowerCase() === studentName.toLowerCase());
+      if (!student) { showToast("No student found with that name.", "error"); return; }
+      SOS.sendMessage({ from: teacher.name, fromRole: "teacher", to: student.name + " (Parent)", toRole: "student", subject: "Message from " + teacher.name, body: msg });
+      document.getElementById("p_student").value = ""; document.getElementById("p_msg").value = "";
+      showToast("Message sent regarding " + student.name, "success");
+      renderTeacherMsgs();
+    });
+    function renderTeacherMsgs() {
+      const msgs = SOS.getMessagesFor(teacher.name);
+      document.getElementById("teacherMsgHistory").innerHTML = msgs.length ? msgs.map(m => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--slate-100);"><p style="margin:0;font-weight:600;font-size:13.5px;">${m.from === teacher.name ? "You → " + m.to : m.from}</p><p style="margin:3px 0 0;font-size:13.5px;color:var(--slate-600);">${m.body}</p><p class="notice-meta">${new Date(m.time).toLocaleString()}</p></div>
+      `).join("") : `<div class="empty-state"><div class="icon">✉️</div>No messages yet.</div>`;
+    }
+
+    /* ---------- SETTINGS ---------- */
+    document.getElementById("changePassBtn").addEventListener("click", () => {
+      const cur = document.getElementById("curPass").value;
+      const next = document.getElementById("newPass").value;
+      const teachers = SOS.read(SOS.KEYS.teachers, []);
+      const t = teachers.find(x => x.id === teacher.id);
+      if (t.password !== cur) { showToast("Current password is incorrect.", "error"); return; }
+      if (!next || next.length < 4) { showToast("New password too short.", "error"); return; }
+      t.password = next; SOS.write(SOS.KEYS.teachers, teachers);
+      showToast("Password updated!", "success");
+      document.getElementById("curPass").value = ""; document.getElementById("newPass").value = "";
+    });
+
+    /* ---------- INIT ---------- */
+    renderNotifs(); renderDashboard(); renderMyClass(); renderSentNotices(); renderPostedAssignments(); renderSubs(); renderTeacherMsgs();
+  }
+</script>
+</body>
+</html>
